@@ -204,7 +204,18 @@ def _building_block_v2(inputs, filters, training, projection_shortcut, strides, 
       inputs=inputs, filters=filters, kernel_size=3, strides=1,
       data_format=data_format)
 
-  inputs =  tf.multiply(inputs, multi_val)
+  # @@ 추가된 부분
+  print("모델 곱 확인 : ",multi_val)
+
+  # 숏컷에 곱
+  tf.summary.histogram("block_before : ", shortcut)
+  shortcut =  tf.multiply(shortcut, multi_val)
+  tf.summary.histogram("block_after : ", shortcut)
+
+  # 연산 값에 곱
+#  tf.summary.histogram("block_before : "  , inputs)
+#  inputs =  tf.multiply(inputs, multi_val)
+#  tf.summary.histogram("block_after : "  , inputs)
 
   return inputs + shortcut
 
