@@ -208,15 +208,21 @@ def _building_block_v2(inputs, filters, training, projection_shortcut, strides, 
   print("모델 곱 확인 : ",multi_val)
 
   # 숏컷에 곱
-  tf.summary.histogram("block_before : ", shortcut)
+  if set_idx == 0 and val_idx == 0:
+      tf.compat.v1.summary.histogram("block_before : ", shortcut)
   shortcut =  tf.multiply(shortcut, multi_val)
-  tf.summary.histogram("block_after : ", shortcut)
+  if set_idx == 0 and val_idx == 0:
+      tf.compat.v1.summary.histogram("block_after : ", shortcut)
 
   # 연산 값에 곱
-#  tf.summary.histogram("block_before : "  , inputs)
+#  if set_idx == 0 and val_idx == 0:
+#     tf.compat.v1.summary.histogram("block_before : "  , inputs)
 #  inputs =  tf.multiply(inputs, multi_val)
-#  tf.summary.histogram("block_after : "  , inputs)
+#  if set_idx == 0 and val_idx == 0:
+#     tf.compat.v1.summary.histogram("block_after : "  , inputs)
 
+#  tf.compat.v1.summary.merge_all()
+  
   return inputs + shortcut
 
 

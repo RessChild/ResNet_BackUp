@@ -204,7 +204,7 @@ class Cifar10Model(resnet_model.Model):
         block_strides=[1, 2, 2],
         # 활성화 타입 @@
         # False = elu / True = relu
-        activation_type=[True, True, True],
+        activation_type=[False, True, True],
         resnet_version=resnet_version,
         data_format=data_format,
         dtype=dtype
@@ -255,7 +255,7 @@ def define_cifar_flags():
   flags.adopt_module_key_flags(resnet_run_loop)
   flags_core.set_defaults(data_dir='/tmp/cifar100_data/cifar-100-binary',
                 # 로그가 기록될 장소 수정 부분 @@
-                          model_dir='/tmp/again/rrr1',
+                          model_dir='/tmp/again/err1',
                           resnet_size='56',
                           # @@
                           train_epochs=182*3,
