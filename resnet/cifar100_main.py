@@ -24,6 +24,9 @@ from absl import app as absl_app
 from absl import flags
 import tensorflow as tf  # pylint: disable=g-bad-import-order
 
+# @@ 이부분 호출 파일 변경할생각
+# 아니면 굳이 이렇게 하지말고 그냥 원본을 바꿔도
+#from official.r1.resnet import resnet_model98
 from official.r1.resnet import resnet_model
 from official.r1.resnet import resnet_run_loop
 from official.utils.flags import core as flags_core
@@ -204,7 +207,7 @@ class Cifar10Model(resnet_model.Model):
         block_strides=[1, 2, 2],
         # 활성화 타입 @@
         # False = elu / True = relu
-        activation_type=[False, True, True],
+        activation_type=[True, True, True],
         resnet_version=resnet_version,
         data_format=data_format,
         dtype=dtype
@@ -255,8 +258,10 @@ def define_cifar_flags():
   flags.adopt_module_key_flags(resnet_run_loop)
   flags_core.set_defaults(data_dir='/tmp/cifar100_data/cifar-100-binary',
                 # 로그가 기록될 장소 수정 부분 @@
-                          model_dir='/tmp/again/err1',
-                          resnet_size='56',
+                          model_dir='/tmp/98/98rrr1',
+                          # 여기도 56 에서 98 로 수정할 부분
+                          #resnet_size='56',
+                          resnet_size='98',
                           # @@
                           train_epochs=182*3,
                           epochs_between_evals=10,

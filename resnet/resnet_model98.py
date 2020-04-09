@@ -1,3 +1,11 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Apr  6 01:16:23 2020
+
+@author: lab1016
+"""
+
+
 # Copyright 2017 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -180,18 +188,10 @@ def _building_block_v2(inputs, filters, training, projection_shortcut, strides, 
 
 #  print("호출 여부 확인 : ", set_idx, val_idx)
  # 논문 적용을 위해 추가한 부분 + set_idx, val_idx 도 각각 추가함
-  """
-  multi_set = [[0.9, 0.95, 1.0, 1.05, 1.1, 1.15, 1.2, 1.25, 1.3],
-               [1.35, 1.4, 1.45, 1.5, 1.55, 1.5, 1.45, 1.4, 1.35],
-               [1.3, 1.25, 1.2, 1.15, 1.1, 1.05, 1.0, 0.95, 0.9]]
-  """
-  
-  # 98 용 모델 ( 0.7~ 1.275 : 각 0.25의 값 차이 )
   multi_set = [[0.7, 0.725, 0.75, 0.775, 0.8, 0.825, 0.85, 0.875, 0.9, 0.925, 0.95, 0.975, 1.0, 1.025, 1.05, 1.075],
                [1.1, 1.125, 1.15, 1.175, 1.2, 1.225, 1.25, 1.275, 1.275, 1.25, 1.225, 1.2, 1.175, 1.15, 1.125, 1.1],
                [1.075, 1.05, 1.025, 1.0, 0.975, 0.95, 0.925, 0.9, 0.875, 0.85, 0.825, 0.8, 0.775, 0.75, 0.725, 0.7]]
-  
-  multi_val = multi_set[set_idx][val_idx]
+#  multi_val = multi_set[set_idx][val_idx]
 
   # The projection shortcut should come after the first batch norm and ReLU
   # since it performs a 1x1 convolution.
@@ -213,14 +213,14 @@ def _building_block_v2(inputs, filters, training, projection_shortcut, strides, 
       data_format=data_format)
 
   # @@ 추가된 부분
-  print("모델 곱 확인 : ",multi_val)
+#  print("모델 곱 확인 : ",multi_val)
 
   # 숏컷에 곱
-  if set_idx == 0 and val_idx == 0:
-      tf.compat.v1.summary.histogram("block_before : ", shortcut)
-  shortcut =  tf.multiply(shortcut, multi_val)
-  if set_idx == 0 and val_idx == 0:
-      tf.compat.v1.summary.histogram("block_after : ", shortcut)
+#  if set_idx == 0 and val_idx == 0:
+#      tf.compat.v1.summary.histogram("block_before : ", shortcut)
+#  shortcut =  tf.multiply(shortcut, multi_val)
+#  if set_idx == 0 and val_idx == 0:
+#      tf.compat.v1.summary.histogram("block_after : ", shortcut)
 
   # 연산 값에 곱
 #  if set_idx == 0 and val_idx == 0:
