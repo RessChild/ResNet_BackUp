@@ -258,10 +258,11 @@ def define_cifar_flags():
   flags.adopt_module_key_flags(resnet_run_loop)
   flags_core.set_defaults(data_dir='/tmp/cifar100_data/cifar-100-binary',
                 # 로그가 기록될 장소 수정 부분 @@
-                          model_dir='/tmp/98/98rrr1',
+                          model_dir='/tmp/32/32rrr3',
                           # 여기도 56 에서 98 로 수정할 부분
                           #resnet_size='56',
-                          resnet_size='98',
+                          #resnet_size='98',
+                          resnet_size='32',
                           # @@
                           train_epochs=182*3,
                           epochs_between_evals=10,

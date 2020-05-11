@@ -31,6 +31,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+#@@
+from bayes_opt import BayesianOptimization
+# add bayesian optimization library. - yhKim
+
 import tensorflow as tf
 _BATCH_NORM_DECAY = 0.997
 _BATCH_NORM_EPSILON = 1e-5
@@ -186,11 +190,18 @@ def _building_block_v2(inputs, filters, training, projection_shortcut, strides, 
                [1.3, 1.25, 1.2, 1.15, 1.1, 1.05, 1.0, 0.95, 0.9]]
   """
   
+  """
   # 98 용 모델 ( 0.7~ 1.275 : 각 0.25의 값 차이 )
   multi_set = [[0.7, 0.725, 0.75, 0.775, 0.8, 0.825, 0.85, 0.875, 0.9, 0.925, 0.95, 0.975, 1.0, 1.025, 1.05, 1.075],
                [1.1, 1.125, 1.15, 1.175, 1.2, 1.225, 1.25, 1.275, 1.275, 1.25, 1.225, 1.2, 1.175, 1.15, 1.125, 1.1],
                [1.075, 1.05, 1.025, 1.0, 0.975, 0.95, 0.925, 0.9, 0.875, 0.85, 0.825, 0.8, 0.775, 0.75, 0.725, 0.7]]
+  """
   
+  # 32 전용
+  multi_set = [[0.8, 0.9, 1.0, 1.1, 1.2],
+               [1.3, 1.4, 1.5, 1.4, 1.3],
+               [1.2, 1.1, 1.0, 0.9, 0.8]]
+
   multi_val = multi_set[set_idx][val_idx]
 
   # The projection shortcut should come after the first batch norm and ReLU
@@ -203,6 +214,28 @@ def _building_block_v2(inputs, filters, training, projection_shortcut, strides, 
       data_format=data_format)
 
   inputs = batch_norm(inputs, training, data_format)
+
+  # 연산 값에 곱
+#  if set_idx == 0 and val_idx == 0:
+#     tf.compat.v1.summary.histogram("block_before : "  , inputs)
+#  inputs =  tf.multiply(inputs, multi_val)
+#  if set_idx == 0 and val_idx == 0:
+#     tf.compat.v1.summary.histogram("block_after : "  , inputs)
+
+
+  # @@ 추가된 부분
+  print("모델 곱 확인 : ",multi_val)
+
+  # 숏컷에 곱
+#  if set_idx == 0 and val_idx == 0:
+#      tf.compat.v1.summary.histogram("block_before : ", shortcut)
+#  shortcut =  tf.multiply(shortcut, multi_val)
+#  if set_idx == 0 and val_idx == 0:
+#      tf.compat.v1.summary.histogram("block_after : ", shortcut)
+
+
+#  tf.compat.v1.summary.merge_all()
+
   if activation_type:
       inputs = tf.nn.relu(inputs)
   else:
@@ -212,24 +245,12 @@ def _building_block_v2(inputs, filters, training, projection_shortcut, strides, 
       inputs=inputs, filters=filters, kernel_size=3, strides=1,
       data_format=data_format)
 
-  # @@ 추가된 부분
-  print("모델 곱 확인 : ",multi_val)
-
-  # 숏컷에 곱
-  if set_idx == 0 and val_idx == 0:
-      tf.compat.v1.summary.histogram("block_before : ", shortcut)
-  shortcut =  tf.multiply(shortcut, multi_val)
-  if set_idx == 0 and val_idx == 0:
-      tf.compat.v1.summary.histogram("block_after : ", shortcut)
-
   # 연산 값에 곱
-#  if set_idx == 0 and val_idx == 0:
-#     tf.compat.v1.summary.histogram("block_before : "  , inputs)
-#  inputs =  tf.multiply(inputs, multi_val)
-#  if set_idx == 0 and val_idx == 0:
-#     tf.compat.v1.summary.histogram("block_after : "  , inputs)
-
-#  tf.compat.v1.summary.merge_all()
+  if set_idx == 0 and val_idx == 0:
+     tf.compat.v1.summary.histogram("block_before : "  , inputs)
+  inputs =  tf.multiply(inputs, multi_val)
+  if set_idx == 0 and val_idx == 0:
+     tf.compat.v1.summary.histogram("block_after : "  , inputs)
   
   return inputs + shortcut
 

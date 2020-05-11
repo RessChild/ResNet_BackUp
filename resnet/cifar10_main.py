@@ -204,7 +204,9 @@ class Cifar10Model(resnet_model.Model):
         block_strides=[1, 2, 2],
         resnet_version=resnet_version,
         data_format=data_format,
-        dtype=dtype
+        dtype=dtype,
+        
+        activation_type=[True, True, True],
     )
 
 
@@ -252,9 +254,10 @@ def define_cifar_flags():
   flags.adopt_module_key_flags(resnet_run_loop)
   flags_core.set_defaults(data_dir='/tmp/cifar10_data/cifar-10-batches-bin',
                           # 경로 수정 @@
-                          model_dir='/tmp/multiple/cifar10/1',
-                          resnet_size='56',
-                          train_epochs=182,
+                          model_dir='/tmp/cifar10/32/rrr3',
+                          resnet_size='32',
+#                          resnet_size='56',
+                          train_epochs=182*3,
                           epochs_between_evals=10,
                           batch_size=128,
                           image_bytes_as_serving_input=False)
