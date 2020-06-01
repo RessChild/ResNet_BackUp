@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from __future__ import print_function
 import keras
 from keras.layers import Dense, Conv2D, BatchNormalization, Activation
@@ -9,18 +10,21 @@ from keras.preprocessing.image import ImageDataGenerator
 from keras.regularizers import l2
 from keras import backend as K
 from keras.models import Model
-from keras.datasets import cifar100
+from keras.datasets import cifar10
 import tensorflow as tf
-import kerastuner as kt
+from bayes_opt import BayesianOptimization
+
 
 import numpy as np
 import os
 
 # Training parameters
 batch_size = 128  # orig paper trained all networks with batch_size=128
-epochs = 100
+
+# @@ 에폭수정
+epochs = 140
 data_augmentation = True
-num_classes = 100
+num_classes = 10
 
 # Subtracting pixel mean improves accuracy
 subtract_pixel_mean = True
@@ -29,7 +33,7 @@ n = 5
 # Model version
 # Orig paper: version = 1 (ResNet v1), Improved ResNet: version = 2 (ResNet v2)
 version = 1
-kk = 1
+#kk = 1
 
 # Computed depth from supplied model parameter n
 if version == 1:
@@ -41,7 +45,7 @@ elif version == 2:
 model_type = 'ResNet%dv%d' % (depth, version)
 
 # Load the CIFAR10 data.
-(x_train, y_train), (x_test, y_test) = cifar100.load_data(label_mode='fine')
+(x_train, y_train), (x_test, y_test) = cifar10.load_data()
 
 # Input image dimensions.
 input_shape = x_train.shape[1:]
@@ -78,6 +82,7 @@ def lr_schedule(epoch):
     # Returns
         lr (float32): learning rate
     """
+    
     lr = 1e-3
     if epoch > 180:
         lr *= 0.5e-3
@@ -87,6 +92,19 @@ def lr_schedule(epoch):
         lr *= 1e-2
     elif epoch > 80:
         lr *= 1e-1
+    
+    #위는 원래 학습률, 밑은 수정본
+    """
+    lr = 1e-3
+    if epoch > 170:
+        lr *= 0.5e-3
+    elif epoch > 150:
+        lr *= 1e-3
+    elif epoch > 80:
+        lr *= 1e-2
+    elif epoch > 40:
+        lr *= 1e-1
+    """
     print('Learning rate: ', lr)
     return lr
 
@@ -97,7 +115,7 @@ def resnet_layer(inputs,
                  strides=1,
                  activation='relu',
                  batch_normalization=True,
-                 conv_first=True):
+                 conv_first=False):
     """2D Convolution-Batch Normalization-Activation stack builder
 
     # Arguments
@@ -136,7 +154,7 @@ def resnet_layer(inputs,
     return x
 
 
-def resnet_v1(input_shape, depth, num_classes=100):
+def resnet_v1(input_shape, depth, num_classes=10, kk = 1.0):
     """ResNet Version 1 Model builder [a]
 
     Stacks of 2 x (3 x 3) Conv2D-BN-ReLU
@@ -164,6 +182,7 @@ def resnet_v1(input_shape, depth, num_classes=100):
     # Returns
         model (Model): Keras model instance
     """
+    depth = depth
     if (depth - 2) % 6 != 0:
         raise ValueError('depth should be 6n+2 (eg 20, 32, 44 in [a])')
     # Start model definition.
@@ -198,7 +217,9 @@ def resnet_v1(input_shape, depth, num_classes=100):
                                  strides=strides,
                                  activation=None,
                                  batch_normalization=False)
-            tf.multiply(x,  kk * multi_set[stack][res_block])
+#            tf.multiply(y,  kk * multi_set[stack][res_block])
+            y = keras.layers.Lambda(lambda y : y *  kk * multi_set[stack][res_block])(y)
+# 텐서 섞어써서 문제생기는거 Lambda 로 치환해서 적용필요
             x = keras.layers.add([x, y])
             x = Activation('relu')(x)
         num_filters *= 2
@@ -215,106 +236,129 @@ def resnet_v1(input_shape, depth, num_classes=100):
     model = Model(inputs=inputs, outputs=outputs)
     return model
 
+# 여기수정 -------------
+def modelTT(input_shape, depth, data_augmentation, x_train, y_train, kk) :
+
+    model = resnet_v1(input_shape=input_shape, depth=depth, kk = kk)
+    
+    model.compile(loss='categorical_crossentropy',
+                  optimizer=Adam(learning_rate=lr_schedule(0)),
+                  metrics=['acc'])
+    model.summary()
+    print(model_type)
+
+    # Prepare model model saving directory.
+    save_dir = os.path.join(os.getcwd(), 'saved_models5')
+    model_name = 'cifar10_%s_model.{epoch:03d}.h5'# % model_type
+    if not os.path.isdir(save_dir):
+        os.makedirs(save_dir)
+    filepath = os.path.join(save_dir, model_name)
+    
+    #print("저장 경로 : ", filepath)
+    
+    # Prepare callbacks for model saving and for learning rate adjustment.
+    checkpoint = ModelCheckpoint(filepath=filepath,
+                                 monitor='val_acc',
+                                 verbose=1,
+                                 save_best_only=True)
+    
+    lr_scheduler = LearningRateScheduler(lr_schedule)
+    
+    lr_reducer = ReduceLROnPlateau(factor=np.sqrt(0.1),
+                                   cooldown=0,
+                                   patience=5,
+                                   min_lr=0.5e-6)
+    
+    callbacks = [checkpoint, lr_reducer, lr_scheduler]
+    
+    # Run training, with or without data augmentation.
+    if not data_augmentation:
+        print('Not using data augmentation.')
+        model.fit(x_train, y_train,
+                  batch_size=batch_size,
+                  epochs=epochs,
+                  validation_data=(x_test, y_test),
+                  shuffle=True,
+                  callbacks=callbacks)
+    else:
+        print('Using real-time data augmentation.')
+        # This will do preprocessing and realtime data augmentation:
+        datagen = ImageDataGenerator(
+            # set input mean to 0 over the dataset
+            featurewise_center=False,
+            # set each sample mean to 0
+            samplewise_center=False,
+            # divide inputs by std of dataset
+            featurewise_std_normalization=False,
+            # divide each input by its std
+            samplewise_std_normalization=False,
+            # apply ZCA whitening
+            zca_whitening=False,
+            # epsilon for ZCA whitening
+            zca_epsilon=1e-06,
+            # randomly rotate images in the range (deg 0 to 180)
+            rotation_range=0,
+            # randomly shift images horizontally
+            width_shift_range=0.1,
+            # randomly shift images vertically
+            height_shift_range=0.1,
+            # set range for random shear
+            shear_range=0.,
+            # set range for random zoom
+            zoom_range=0.,
+            # set range for random channel shifts
+            channel_shift_range=0.,
+            # set mode for filling points outside the input boundaries
+            fill_mode='nearest',
+            # value used for fill_mode = "constant"
+            cval=0.,
+            # randomly flip images
+            horizontal_flip=True,
+            # randomly flip images
+            vertical_flip=False,
+            # set rescaling factor (applied before any other transformation)
+            rescale=None,
+            # set function that will be applied on each input
+            preprocessing_function=None,
+            # image data format, either "channels_first" or "channels_last"
+            data_format=None,
+            # fraction of images reserved for validation (strictly between 0 and 1)
+            validation_split=0.0)
+    
+        # Compute quantities required for featurewise normalization
+        # (std, mean, and principal components if ZCA whitening is applied).
+        datagen.fit(x_train)
+    
+        # Fit the model on the batches generated by datagen.flow().
+        model.fit_generator(datagen.flow(x_train, y_train, batch_size=batch_size),
+                            validation_data=(x_test, y_test),
+                            epochs=epochs, verbose=1, workers=4,
+                            callbacks=callbacks)
+    
+    # Score trained model.
+    scores = model.evaluate(x_test, y_test, verbose=1)
+    print('Test loss:', scores[0])
+    print('Test accuracy:', scores[1])
+    
+    return scores[1] # 비교를 위해선 값 반환이 필요
+
+from functools import partial
+
+mt = partial(modelTT, input_shape, depth, data_augmentation, x_train, y_train ) 
+
+bayes_optimizer = BayesianOptimization(
+    f=mt,
+    pbounds={
+        'kk': (0.8, 1.2)
+    },
+    random_state=0,
+    verbose=2
+)
+
+bayes_optimizer.maximize(init_points=2, n_iter=8, acq='ei', xi=0.01)    # FIXME
 
 
-model = resnet_v1(input_shape=input_shape, depth=depth)
-
-model.compile(loss='categorical_crossentropy',
-              optimizer=Adam(learning_rate=lr_schedule(0)),
-              metrics=['acc'])
-model.summary()
-print(model_type)
-
-# Prepare model model saving directory.
-save_dir = os.path.join(os.getcwd(), 'saved_models')
-model_name = 'cifar10_%s_model.{epoch:03d}.h5'# % model_type
-if not os.path.isdir(save_dir):
-    os.makedirs(save_dir)
-filepath = os.path.join(save_dir, model_name)
-
-print("저장 경로 : ", filepath)
-
-# Prepare callbacks for model saving and for learning rate adjustment.
-checkpoint = ModelCheckpoint(filepath=filepath,
-                             monitor='val_acc',
-                             verbose=1,
-                             save_best_only=True)
-
-lr_scheduler = LearningRateScheduler(lr_schedule)
-
-lr_reducer = ReduceLROnPlateau(factor=np.sqrt(0.1),
-                               cooldown=0,
-                               patience=5,
-                               min_lr=0.5e-6)
-
-callbacks = [checkpoint, lr_reducer, lr_scheduler]
-
-# Run training, with or without data augmentation.
-if not data_augmentation:
-    print('Not using data augmentation.')
-    model.fit(x_train, y_train,
-              batch_size=batch_size,
-              epochs=epochs,
-              validation_data=(x_test, y_test),
-              shuffle=True,
-              callbacks=callbacks)
-else:
-    print('Using real-time data augmentation.')
-    # This will do preprocessing and realtime data augmentation:
-    datagen = ImageDataGenerator(
-        # set input mean to 0 over the dataset
-        featurewise_center=False,
-        # set each sample mean to 0
-        samplewise_center=False,
-        # divide inputs by std of dataset
-        featurewise_std_normalization=False,
-        # divide each input by its std
-        samplewise_std_normalization=False,
-        # apply ZCA whitening
-        zca_whitening=False,
-        # epsilon for ZCA whitening
-        zca_epsilon=1e-06,
-        # randomly rotate images in the range (deg 0 to 180)
-        rotation_range=0,
-        # randomly shift images horizontally
-        width_shift_range=0.1,
-        # randomly shift images vertically
-        height_shift_range=0.1,
-        # set range for random shear
-        shear_range=0.,
-        # set range for random zoom
-        zoom_range=0.,
-        # set range for random channel shifts
-        channel_shift_range=0.,
-        # set mode for filling points outside the input boundaries
-        fill_mode='nearest',
-        # value used for fill_mode = "constant"
-        cval=0.,
-        # randomly flip images
-        horizontal_flip=True,
-        # randomly flip images
-        vertical_flip=False,
-        # set rescaling factor (applied before any other transformation)
-        rescale=None,
-        # set function that will be applied on each input
-        preprocessing_function=None,
-        # image data format, either "channels_first" or "channels_last"
-        data_format=None,
-        # fraction of images reserved for validation (strictly between 0 and 1)
-        validation_split=0.0)
-
-    # Compute quantities required for featurewise normalization
-    # (std, mean, and principal components if ZCA whitening is applied).
-    datagen.fit(x_train)
-
-    # Fit the model on the batches generated by datagen.flow().
-    model.fit_generator(datagen.flow(x_train, y_train, batch_size=batch_size),
-                        validation_data=(x_test, y_test),
-                        epochs=epochs, verbose=1, workers=4,
-                        callbacks=callbacks)
-
-# Score trained model.
-scores = model.evaluate(x_test, y_test, verbose=1)
-print('Test loss:', scores[0])
-print('Test accuracy:', scores[1])
+for i, res in enumerate(bayes_optimizer.res):
+    print('Iteration {}: \n\t{}'.format(i, res))
+print('Final result: ', bayes_optimizer.max)
 
