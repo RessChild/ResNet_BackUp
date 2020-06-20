@@ -22,7 +22,7 @@ import os
 batch_size = 128  # orig paper trained all networks with batch_size=128
 
 # @@ 에폭수정
-epochs = 150
+epochs = 200
 data_augmentation = True
 num_classes = 100
 
@@ -154,7 +154,7 @@ def resnet_layer(inputs,
     return x
 
 
-def resnet_v1(input_shape, depth, num_classes=100, kk = 1.0):
+def resnet_v1(input_shape, depth, num_classes=100, kk = 0.8873694907459634):
     """ResNet Version 1 Model builder [a]
 
     Stacks of 2 x (3 x 3) Conv2D-BN-ReLU
@@ -218,9 +218,7 @@ def resnet_v1(input_shape, depth, num_classes=100, kk = 1.0):
                                  activation=None,
                                  batch_normalization=False)
 #            tf.multiply(y,  kk * multi_set[stack][res_block])
-#            y = keras.layers.Lambda(lambda y : y *  kk * multi_set[stack][res_block])(y)
-            x = keras.layers.Lambda(lambda x : x *  kk * multi_set[stack][res_block])(x)
-
+            y = keras.layers.Lambda(lambda y : y *  kk * multi_set[stack][res_block])(y)
 # 텐서 섞어써서 문제생기는거 Lambda 로 치환해서 적용필요
             x = keras.layers.add([x, y])
             x = Activation('relu')(x)
@@ -250,7 +248,7 @@ def modelTT(input_shape, depth, data_augmentation, x_train, y_train, kk) :
     print(model_type)
 
     # Prepare model model saving directory.
-    save_dir = os.path.join(os.getcwd(), 'saved_models7')
+    save_dir = os.path.join(os.getcwd(), 'saved_models9')
     model_name = 'cifar10_%s_model.{epoch:03d}.h5'# % model_type
     if not os.path.isdir(save_dir):
         os.makedirs(save_dir)
@@ -346,24 +344,4 @@ def modelTT(input_shape, depth, data_augmentation, x_train, y_train, kk) :
     
     return scores[1] # 비교를 위해선 값 반환이 필요
 
-from functools import partial
-
-mt = partial(modelTT, input_shape, depth, data_augmentation, x_train, y_train ) 
-
-bayes_optimizer = BayesianOptimization(
-    f=mt,
-    pbounds={
-        'kk': (0.8, 1.2)
-    },
-    random_state=0,
-    verbose=2
-)
-
-# 반복 지정 구간 @@
-bas_iter = 12
-bayes_optimizer.maximize(init_points=2, n_iter=bas_iter, acq='ei', xi=0.01)    # FIXME
-
-for i, res in enumerate(bayes_optimizer.res):
-    print('Iteration {}: \n\t{}'.format(i, res))
-print('Final result: ', bayes_optimizer.max)
-
+mt = modelTT(input_shape, depth, data_augmentation, x_train, y_train, kk = 0.8873694907459634)

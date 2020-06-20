@@ -1,0 +1,40 @@
+activate resnet
+set PYTHONPATH=C:\models-r2.1.0
+cd C:\models-r2.1.0\official\r1\resnet
+python cifar100_main.py
+
+tensorboard --logdir=C:\tmp --port=9999
+
+-----------------------
+activate resnet2
+cd C:\classification-master
+python train.py
+python test.py
+
+tensorboard --logdir=C:\tmp --port=9999
+
+환경 구축에 사용한 명령어들 
+	pip install scikit-image
+	pip install sklearn
+	conda install tensorflow==2.0.0
+	conda uninstall hdf5
+	conda uninstall h5py
+	conda install scipy
+
+
+Headers are 1.10.4, library is 1.10.5
+
+
+module 'numpy' has no attribute 'byte'
+
+ERROR: tensorflow 2.1.0 has requirement gast==0.2.2, but you'll have gast 0.3.3 which is incompatible.
+ERROR: tensorflow 2.1.0 has requirement tensorboard<2.2.0,>=2.1.0, but you'll have tensorboard 2.2.1 which is incompatible.
+ImportError: DLL load failed: 지정된 모듈을 찾을 수 없습니다
+
+tf.placeholder() is not compatible with eager execution.
+
+구현할 부분
+nn.py :
+	_build_model
+	_build_loss
+	

@@ -1,0 +1,91 @@
+multiple/cifar100 계얼
+
+original = relu relu relu 로 논문 적용 없이 (원본방식)
+
+1 = elu relu relu
+2 = elu elu elu
+3 = relu relu relu
+4 = elu elu relu
+
+5 = relu relu relu 로 곱 적용
+
+--------------------------------
+again -> 다시 돌려보자 뭔가 뒤섞였을수도 있으니까
+
+ori = 모델 적용 없이 (곱 없이), relu relu relu 로
+rrr1 = 논문대로, relu relu relu 에 shortcut 곱
+rrr2 = 논문 +  inputs 에 곱 (relu relu relu)
+rrr3 = 논문 + inputs 에 곱 (relu relu relu) + 내부 배치정규화 없애고
+	=> 이건 왜 정확도 값이 표기가 안되는걸까..
+rrr3_2 = 논문 + inputs 에 곱 (relu relu relu) + 내부 배치정규화 없애고
+	 (히스토그램 빼고)
+
+err0 = 모델 적용 없이 elu relu relu
+err1 = elu relu relu에 shortcut 곱
+err2 = 논문 +  inputs 에 곱 (elu relu relu)
+
+eer0 = 모델 적용 없이 elu elu relu
+eer1 = elu elu relu에 shortcut 곱
+eer2 = 논문 +  inputs 에 곱 (elu elu relu)
+
+eee0 =  모델 적용 없이 elu elu elu
+
+depth98 = relu relu relu 에 곱연산 없이 98 로 뎁스 늘림
+
+==> 배치정규화는 필요하다..
+
+-----------------------------------
+
+98 폴더 => depth 수 98로 조정한 것들
+
+rrr0 = relu relu relu 모델 적용 없음
+rrr1 = relu relu relu 기본 논문 적용 ( 0.7~1.275 : 0.25 씩 값 변화 )
+rrr2 = relu relu relu 논문 응용 + 위치변경 ( 0.7~1.275 : 0.25 씩 값 변화 )
+rrr3 = relu relu relu 논문 응용 + 기존 위치 (마지막) ( 0.7~1.275 : 0.25 씩 값 변화 )
+rrr3_2 ( 두번째 돌림 )
+
+* 3, 3_2, 3_3 전부 rrr2와 동일구조 (잘못 돌렸움..)
+
+err0 = elu relu relu 모델 적용 없음
+eer0 = elu elu relu 모델 적용 없음
+eee0 = elu elu elu 모델 적용 없음
+rer0 = relu elu relu 모델 적용 없음
+
+비교해보려고 eee1 도 돌리는중.
+일단 eee 로 쓰면 성능이 현저히 낮아지는건 맞으니까 올려보려고 해야지
+--------------------------------
+
+32 시리즈 : 논문 그대로로 적용해보기 위해 depth 수를 낮춤
+추가적으로 학습량도 원상복귀시킴
+
+rrr1 까지 돌렸고
+rrr0은 학습시간이 너무 짧았어서 다시돌리는중 (rrr0_2)
+rrr2
+rrr3
+===> 세 경우 모두 결과값이 유사..
+
+-------------------------------
+지금 4/23인데, 자꾸 환경오류뜬다
+platform does not support this application
+==> 아나콘다 프롬프트에서 뜸 
+
+cifar10 기준으로 32 돌리는중..
+100으로 돌렸는데 별 차이가 없어서 10 기준으로 다시 테스트 중
+rrr0 = 원본
+rrr1 = 숏컷
+rrr2 = 배치 정규화 직후,  연산값에
+rrr3 = 완전 마지막에, 연산값에 (진행중)
+---------------------------------------------------
+
+average = rrr 만 돌릴곳
+---------------
+앞으로 할거
+1. 일단 eee 랑 전부 한번씩 돌려보기 OK
+2. depth 값 증가시키기 (56 -> 90 대 까지 올려보기)
+	=> 이거 98로 해보기로 함 
+		OK 확실히 이게 성능이 올라감
+3. 상수값 학습시키는 구조 파악하고 짜기..
+
+-------------------------------
+
+savemodel 2= 200에폭 / 3 = 300 에폭
